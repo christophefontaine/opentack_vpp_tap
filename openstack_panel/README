@@ -1,0 +1,6 @@
+Openstack East/West Visibility Panel
+
+To install the panel : 
+python setup.py build
+python setup.py install
+copy _99_nsa.py to /usr/share/openstack-dashboard/openstack_dashboard/local/enabled
