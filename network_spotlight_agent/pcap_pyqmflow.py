@@ -38,13 +38,14 @@ class DPIThread(Thread):
             This may be done with methods 'qm.set_callback'
             and 'qm.md_subscribe'
         """
-        LOG.info("md_dict" + str(md_dict ))
+        LOG.info("md_dict" + str(md_dict))
         LOG.info(self.tenant_id)
         LOG.info(self.user_id)
         if len(md_dict['metadata']) > 0:
             publisher.publish(self.tenant_id or 'admin',
                               self.user_id or 'admin',
-                              str(md_dict))
+                              self.instance_id,
+                              md_dict)
 
     def stop(self):
         self._stop = True
@@ -87,12 +88,14 @@ def main():
                       help='Set licence file')
     parser.add_option('--tenant-id')
     parser.add_option('--user-id')
+    parser.add_option('--instance-id')
     (options, args) = parser.parse_args()
     setup(options.license)
     try:
         worker = DPIThread(options.interface)
         worker.tenant_id = options.tenant_id
         worker.user_id = options.user_id
+        worker.instance_id = options.instance_id
         worker.run()
     except:
         worker.stop()
