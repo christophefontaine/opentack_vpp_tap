@@ -1,25 +1,45 @@
 import datetime
-import json
 from oslo_config import cfg
 from oslo_context import context
 from oslo_utils import netutils
 from ceilometer import messaging, sample
 from ceilometer.publisher import messaging as msg_publisher
-
+from horizon.utils.memoized import memoized
 import logging
 _LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
-cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')], group="publisher")
-cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
-                        default='fc0e4142d8224be0')],
-                        group="publisher")
-messaging.setup()
-_publisher = msg_publisher.SampleNotifierPublisher(
-                 netutils.urlsplit('__default__'))
+def _setup():
+    import re
+    telemetry_secret = None
+    prog = re.compile('^[metering|telemetry]_secret=(.*)$')
+    for config_file in cfg.find_config_files('ceilometer'):
+        with open(config_file, "r") as cfgfile:
+            for line in cfgfile.read().split('\n'):
+                m = prog.match(line)
+                if m is not None:
+                    telemetry_secret = m.group(1)
+                    break
+    if telemetry_secret is not None:
+        cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
+                                 group="publisher")
+        cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
+                                default=telemetry_secret)],
+                               group="publisher")
+    messaging.setup()
 
-c = context.RequestContext('admin', 'admin', is_admin=True)
+
+@memoized
+def _publisher():
+    _setup()
+    url = netutils.urlsplit('__default__')
+    return msg_publisher.SampleNotifierPublisher(url)
+
+
+@memoized
+def _context():
+    return context.RequestContext('admin', 'admin', is_admin=True)
 
 
 def publish(tenant_id, user_id, instance_id, blob, sample_name="l7"):
@@ -35,4 +55,4 @@ def publish(tenant_id, user_id, instance_id, blob, sample_name="l7"):
                resource_metadata={"flow_sig": blob['flow_sig'],
                                   "ixe_md": blob['metadata']},
                )]
-    _publisher.publish_samples(c, samples)
+    _publisher().publish_samples(_context(), samples)
