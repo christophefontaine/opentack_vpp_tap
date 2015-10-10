@@ -26,8 +26,12 @@ class AMQPListener(Thread):
         self.instances = dict()
         result = self.channel.queue_declare()
         queue_name = result.method.queue
-        self.channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
-        self.channel.basic_consume(self.callback, queue=queue_name, no_ack=True)
+        self.channel.queue_bind(exchange=exchange_name,
+                                queue=queue_name,
+                                routing_key=routing_key)
+        self.channel.basic_consume(self.callback,
+                                   queue=queue_name,
+                                   no_ack=True)
 
     def run(self):
         self.channel.start_consuming()
@@ -42,7 +46,7 @@ class AMQPListener(Thread):
             print "Error when loading msg: %s" % msg
             return
         try:
-#            print '***********************************  MSG  ****************************************'
+            # print '***********************************  MSG  ****************************************'
             if 'oslo.message' in msg:
                 msg = json.loads(msg['oslo.message'])  # The payload is a json string
                 method_name = ""
