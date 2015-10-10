@@ -3,7 +3,6 @@
 
 import pika
 import json
-import os
 import sys
 import argparse
 import traceback
@@ -47,7 +46,7 @@ class AMQPListener(Thread):
             if 'oslo.message' in msg:
                 msg = json.loads(msg['oslo.message'])  # The payload is a json string
                 method_name = ""
-#                print " [%s:%s] Received %s" % (ch, method, json.dumps(msg, sort_keys=True, indent=4, separators=(',', ': ')))
+                # print " [%s:%s] Received %s" % (ch, method, json.dumps(msg, sort_keys=True, indent=4, separators=(',', ': ')))
                 for class_instance in MQHooks:
                     method_name = '_RPC_' + msg["method"]
                     if method_name in dir(class_instance):
@@ -75,6 +74,7 @@ def run_listener(exchange_name, routing_key):
         listener.run()
     except KeyboardInterrupt:
         listener.stop()
+
 
 def main():
     parser = argparse.ArgumentParser()
