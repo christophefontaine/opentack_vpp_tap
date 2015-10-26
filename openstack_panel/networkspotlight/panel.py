@@ -14,5 +14,5 @@ import horizon
 
 
 class NetworkSpotlight(horizon.Panel):
-    name = "East/West Visibility"
+    name = "Microsegmentation"
     slug = 'networkspotlight'
