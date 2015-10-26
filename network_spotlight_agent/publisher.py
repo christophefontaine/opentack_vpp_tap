@@ -20,13 +20,23 @@ def _setup():
                 m = prog.match(line)
                 if m is not None:
                     telemetry_secret = m.group(1)
+                    _LOG.debug('telemetry_secret found')
                     break
+    _LOG.debug("telemetry_secret is %s" % str(telemetry_secret))
+    cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
+                              group="publisher")
     if telemetry_secret is not None:
-        cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
-                                 group="publisher")
         cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
                                 default=telemetry_secret)],
                                group="publisher")
+        _LOG.info("Set telemetry_secret to %s" % telemetry_secret)
+    else:
+        # fc0e4142d8224be0
+        cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
+                                default="fc0e4142d8224be0")],
+                               group="publisher")
+        _LOG.info("Set telemetry_secret to %s" % "fc0e4142d8224be0")
+    
     messaging.setup()
 
 
@@ -42,7 +52,7 @@ def _context():
     return context.RequestContext('admin', 'admin', is_admin=True)
 
 
-def publish(tenant_id, user_id, instance_id, blob, sample_name="l7"):
+def publish(tenant_id, user_id, instance_id, blob, sample_name="network.visibility"):
     samples = [sample.Sample(
                name=sample_name,
                type=sample.TYPE_CUMULATIVE,
