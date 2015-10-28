@@ -27,8 +27,9 @@ class DPIThread(Thread):
         self.cap = pcapy.open_live(interface, 65536, 1, 0)
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
-        for (key, value) in SUBSCRIBED_METADATAS:
-            qm.md_subscribe(key, value)
+        for protocol in SUBSCRIBED_METADATAS:
+            LOG.info("Subscribing to %s-%s" % (str(protocol._parent), str(protocol)))
+            qm.md_subscribe(int(protocol._parent), int(protocol))
 
     def metadata_cb(self, md_dict):
         """
@@ -39,8 +40,6 @@ class DPIThread(Thread):
             and 'qm.md_subscribe'
         """
         LOG.info("md_dict" + str(md_dict))
-        LOG.info(self.tenant_id)
-        LOG.info(self.user_id)
         if len(md_dict['metadata']) > 0:
             publisher.publish(self.tenant_id or 'admin',
                               self.user_id or 'admin',
