@@ -8,7 +8,7 @@ import subprocess
 import signal
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 LICENCE_FILE = 'Q1500085-20150626.bin'
 
@@ -45,9 +45,13 @@ class NetworkSpotlightAgent():
     # network info blob is not yet populated
     # use instead 'external_instance_event, and filter on vm_state
     def _RPC_external_instance_event(self, args):
-        instance_args = args['instance']['nova_object.data']
-        if instance_args['vm_state'] == 'building':
-            self._RPC_start_instance(args)
+      try:
+        for instance in args['instances']:
+            instance_args = instance['nova_object.data']
+            if instance_args['vm_state'] == 'building':
+                self._RPC_start_instance(args)
+      except:
+        pass  # TODO
 
     def _RPC_terminate_instance(self, args):
         self._RPC_stop_instance(args)
