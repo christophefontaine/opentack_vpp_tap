@@ -3,7 +3,8 @@
 import pyqmflow as qm
 
 import optparse
-from threading import Thread
+import sys
+import traceback
 import re
 import pcapy
 import publisher
@@ -19,11 +20,8 @@ LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
-class DPIThread(Thread):
+class IXE():
     def __init__(self, interface):
-        Thread.__init__(self)
-        self.daemon = True
-        self._stop = False
         self.cap = pcapy.open_live(interface, 65536, 1, 0)
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
@@ -39,25 +37,26 @@ class DPIThread(Thread):
             This may be done with methods 'qm.set_callback'
             and 'qm.md_subscribe'
         """
-        LOG.info("md_dict" + str(md_dict))
-        if len(md_dict['metadata']) > 0:
+        try:
+          if len(md_dict['metadata'].keys()) > 0:
+            LOG.info("md_dict" + str(md_dict))
             publisher.publish(self.tenant_id or 'admin',
                               self.user_id or 'admin',
                               self.instance_id,
                               md_dict)
+            LOG.info("done")
+        except Exception:
+            print '*********************************** ERROR ****************************************'
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print (repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
-    def stop(self):
-        self._stop = True
+        return 0
 
     def run(self):
-        try:
-            while self._stop is False:
-                (header, packet) = self.cap.next()
-                # Analyse packet
-                qm.process_packet(pdata=packet, time=header.getts())
-        except:
-            self._stop = True
-            pass
+        while True:
+            (header, packet) = self.cap.next()
+            # Analyse packet
+            qm.process_packet(pdata=packet, time=header.getts())
 
 
 def setup(license_file):
@@ -91,13 +90,13 @@ def main():
     (options, args) = parser.parse_args()
     setup(options.license)
     try:
-        worker = DPIThread(options.interface)
-        worker.tenant_id = options.tenant_id
-        worker.user_id = options.user_id
-        worker.instance_id = options.instance_id
-        worker.run()
-    except:
-        worker.stop()
+        ixe = IXE(options.interface)
+        ixe.tenant_id = options.tenant_id
+        ixe.user_id = options.user_id
+        ixe.instance_id = options.instance_id
+        ixe.run()
+    except KeyboardInterrupt:
+        LOG.debug('KeyboardInterrupt')
     finally:
         cleanup()
 
