@@ -38,8 +38,6 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
-          if len(md_dict['metadata'].keys()) > 0:
-            LOG.info("md_dict" + str(md_dict))
             publisher.publish(self.tenant_id or 'admin',
                               self.user_id or 'admin',
                               self.instance_id,
@@ -54,9 +52,14 @@ class IXE():
 
     def run(self):
         while True:
-            (header, packet) = self.cap.next()
-            # Analyse packet
-            qm.process_packet(pdata=packet, time=header.getts())
+            try:
+                (header, packet) = self.cap.next()
+                # Analyse packet
+                qm.process_packet(pdata=packet, time=header.getts())
+            except Exception:
+                print '*********************************** ERROR ****************************************'
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                print (repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
 
 def setup(license_file):
