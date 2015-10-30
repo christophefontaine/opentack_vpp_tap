@@ -1,42 +1,41 @@
 import datetime
+from Queue import Queue
 from oslo_config import cfg
 from oslo_context import context
 from oslo_utils import netutils
 from ceilometer import messaging, sample
 from ceilometer.publisher import messaging as msg_publisher
 from horizon.utils.memoized import memoized
+
+from protocols import protocols as p
+
 import logging
-_LOG = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
 def _setup():
     import re
     telemetry_secret = None
-    prog = re.compile('^[metering|telemetry]_secret=(.*)$')
+    prog = re.compile('^metering_secret=(.*)$')
     for config_file in cfg.find_config_files('ceilometer'):
+        LOG.info('config_file %s'%config_file)
         with open(config_file, "r") as cfgfile:
             for line in cfgfile.read().split('\n'):
                 m = prog.match(line)
                 if m is not None:
                     telemetry_secret = m.group(1)
-                    _LOG.debug('telemetry_secret found')
+                    LOG.debug('telemetry_secret found')
                     break
-    _LOG.debug("telemetry_secret is %s" % str(telemetry_secret))
-    cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
-                              group="publisher")
     if telemetry_secret is not None:
+        cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
+                                  group="publisher")
         cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
                                 default=telemetry_secret)],
                                group="publisher")
-        _LOG.info("Set telemetry_secret to %s" % telemetry_secret)
+        LOG.debug("Set telemetry_secret to %s" % telemetry_secret)
     else:
-        # fc0e4142d8224be0
-        cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
-                                default="fc0e4142d8224be0")],
-                               group="publisher")
-        _LOG.info("Set telemetry_secret to %s" % "fc0e4142d8224be0")
-    
+        raise Exception('metering_secret NOT FOUND')
     messaging.setup()
 
 
@@ -53,16 +52,24 @@ def _context():
 
 
 def publish(tenant_id, user_id, instance_id, blob, sample_name="network.visibility"):
-    samples = [sample.Sample(
+    proto = p.proto_from_id(int(blob['app_id']))
+    metadatas = {}
+    for key in blob['metadata'].keys():
+        try:
+            metadatas[str(proto.attr_from_id(int(key)))] = blob['metadata'][key]
+        except:
+            LOG.warn("key not found: %s " % (str(key)))
+            metadatas[key] = blob['metadata'][key]
+
+    visibility_sample = sample.Sample(
                name=sample_name,
-               type=sample.TYPE_CUMULATIVE,
-               unit='GAUGE',
+               type=sample.TYPE_GAUGE,
+               unit='',
                volume=1,
                user_id=user_id,
                project_id=tenant_id,
                resource_id=instance_id,
                timestamp=datetime.datetime.utcnow().isoformat(),
-               resource_metadata={"flow_sig": blob['flow_sig'],
-                                  "ixe_md": blob['metadata']},
-               )]
-    _publisher().publish_samples(_context(), samples)
+               resource_metadata={"app_name": str(proto), "flow_sig": blob['flow_sig'], "app_metadatas": metadatas},
+               )
+    _publisher().publish_samples(_context(), [visibility_sample])
