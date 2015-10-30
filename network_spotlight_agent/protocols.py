@@ -54,7 +54,7 @@ class Protocols(object):
 
         @memoized
         def _attributes(self):
-            return [attr for attr in self.__dict__ 
+            return [self.__dict__[attr] for attr in self.__dict__ 
                          if not attr.startswith('_')]
 
         @memoized
