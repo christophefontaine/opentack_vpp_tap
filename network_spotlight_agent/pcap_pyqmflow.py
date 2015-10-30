@@ -20,9 +20,21 @@ LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
+import collections
+def update(d, u):
+    for k, v in u.iteritems():
+        if isinstance(v, collections.Mapping):
+            r = update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
+
+
 class IXE():
     def __init__(self, interface):
         self.cap = pcapy.open_live(interface, 65536, 1, 0)
+        self._flows = {}
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
         for protocol in SUBSCRIBED_METADATAS:
@@ -38,11 +50,17 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
-            publisher.publish(self.tenant_id or 'admin',
-                              self.user_id or 'admin',
-                              self.instance_id,
-                              md_dict)
-            LOG.info("done")
+            if 'expired' in md_dict:
+                publisher.publish(self.tenant_id or 'admin',
+                                  self.user_id or 'admin',
+                                  self.instance_id,
+                                  self._flows[md_dict['flow_sig']])
+                del self._flows[md_dict['flow_sig']]
+            else:
+                if not md_dict['flow_sig'] in self._flows:
+                    self._flows[md_dict['flow_sig']] = {}
+                update(self._flows[md_dict['flow_sig']], md_dict)
+                
         except Exception:
             print '*********************************** ERROR ****************************************'
             exc_type, exc_value, exc_traceback = sys.exc_info()
