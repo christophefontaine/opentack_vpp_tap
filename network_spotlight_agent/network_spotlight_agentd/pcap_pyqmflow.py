@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyrights Qosmos 2015
-import pyqmflow as qm
+import ixe.pyqmflow as qm
 
 import optparse
 import sys
@@ -9,6 +9,7 @@ import re
 import pcapy
 import publisher
 from conf_metadata import SUBSCRIBED_METADATAS
+from protocols import protocols as p
 
 __author__ = "Christophe Fontaine"
 __email__ = "christophe.fontaine@qosmos.com"
@@ -50,7 +51,8 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
-            if 'expired' in md_dict:
+            LOG.info("metadata_cb " + str(md_dict))
+            if "expired" in md_dict:
                 publisher.publish(self.tenant_id or 'admin',
                                   self.user_id or 'admin',
                                   self.instance_id,
@@ -62,29 +64,30 @@ class IXE():
                 update(self._flows[md_dict['flow_sig']], md_dict)
                 
         except Exception:
-            print '*********************************** ERROR ****************************************'
+            LOG.error('*********************************** ERROR ****************************************')
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            print (repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-
-        return 0
+            LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
     def run(self):
         while True:
             try:
-                (header, packet) = self.cap.next()
+                header, packet = self.cap.next()
                 # Analyse packet
                 qm.process_packet(pdata=packet, time=header.getts())
+            except pcapy.PcapError:
+                pass
             except Exception:
-                print '*********************************** ERROR ****************************************'
+                LOG.error('*********************************** ERROR ****************************************')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                print (repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+                LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
 
 def setup(license_file):
     try:
         if license_file is not None:
-            serial_number = re.match("^.*/?(Q\d*)-\d*.bin$",
+            serial_number = re.match("^.*/?(Q[a-zA-Z\-\d]*)-\d*.bin$",
                                      license_file).group(1)
+            LOG.info(serial_number)
             qm.set_license(filename=license_file, serial=serial_number)
         qm.init()
     except Exception as e:

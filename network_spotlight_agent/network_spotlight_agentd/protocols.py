@@ -83,11 +83,14 @@ class Protocols(object):
 
 
 def _load():
+    from pkg_resources import Requirement, resource_filename
+    filename = resource_filename(Requirement.parse("network_spotlight_agentd"),
+                                 "network_spotlight_agentd/ixe/protodef.proto")
     global protocols
     mpa = {}
     proto = {}
     current_proto = ''
-    for l in open('protodef.proto').read().split('\n'):
+    for l in open(filename).read().split('\n'):
         m_mpa = re.search('^  \(mpa ([a-zA-Z_]*) ([\-0-9]*)\)$', l)
         m_proto = re.search('^  \(proto ([a-zA-Z_]*) ([\-0-9]*)\)?$', l)
         m_proto_attr = re.search('^    \(([a-zA-Z_]*) ([\-0-9]*)\)$', l)

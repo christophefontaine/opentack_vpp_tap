@@ -6,16 +6,20 @@ import logging
 import json
 import subprocess
 import signal
+from conf import LICENCE_FILE
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
-LICENCE_FILE = 'Q1500085-20150626.bin'
 
 
 class NetworkSpotlightAgent():
     def __init__(self):
         self.children = {}
+        self._find_licence_file()
+
+    def _find_licence_file(self):
+        
 
     def _RPC_change_instance_metadata(self, args):
         instance_args = args['instance']['nova_object.data']
