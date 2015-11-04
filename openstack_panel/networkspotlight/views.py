@@ -6,7 +6,7 @@ from horizon.tables import DataTableView
 import tables
 
 from openstack_dashboard import api
-
+import copy
 import logging
 LOG = logging.getLogger(__name__)
 
@@ -53,6 +53,5 @@ class IndexView(DataTableView):
             if 'nsa' in instance.metadata:
                 instance.visibility_enabled = instance.metadata['nsa']
             else:
-                instance.visibility_enabled = False
-        print instances
+                instance.visibility_enabled = None
         return instances

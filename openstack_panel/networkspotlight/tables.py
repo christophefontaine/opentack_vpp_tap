@@ -1,6 +1,8 @@
 from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
+from openstack_dashboard.dashboards.project.instances \
+    import tables as project_tables
 from openstack_dashboard.api.nova import novaclient
 import logging
 LOG = logging.getLogger(__name__)
@@ -47,9 +49,13 @@ class ToggleNetworkVisibility(tables.BatchAction):
         LOG.warning("allowed")
         if not instance:
             return False
-
-        self.visibility_enabled = (instance.to_dict()['metadata']['nsa'] == 'True') or False
+        
+        if 'nsa' in instance.to_dict()['metadata']:
+            self.visibility_enabled = (instance.to_dict()['metadata']['nsa'] == 'True')
+        else:
+            self.visibility_enabled = False
         instance.visibility_enabled = self.visibility_enabled
+
         if self.visibility_enabled:
             self.current_present_action = ToggleNetworkVisibility.DISABLE
         else:
@@ -84,7 +90,10 @@ class InstancesTable(tables.DataTable):
     zone = tables.Column('availability_zone',
                          verbose_name=_("Availability Zone"))
     status = tables.Column("status", verbose_name=_("Server Status"))
-    addresses = tables.Column("addresses", verbose_name=_("Addresses"))
+#    addresses = tables.Column("addresses", verbose_name=_("Addresses"))
+    ip = tables.Column(project_tables.get_ips,
+                       verbose_name=_("IP Address"),
+                       attrs={'data-type': "ip"})
     visibility_enabled = tables.Column("visibility_enabled",
                                        verbose_name=_("Visibility Status"))
 
