@@ -32,5 +32,5 @@ setup(
     zip_safe=False,
     packages=['networkspotlight'],
     package_data={'networkspotlight': ['templates/networkspotlight/*', 'static/networkspotlight/*']},
-#    data_files=[('/usr/share/openstack-dashboard/openstack_dashboard/local/enabled', ['_99_nsa.py'])],
+    data_files=[('/usr/share/openstack-dashboard/openstack_dashboard/local/enabled', ['_99_nsa.py'])],
 )
