@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Copyright  Qosmos 2000-2015 - All rights reserved
 
+import os
 import platform
 import logging
 import json
 import subprocess
 import signal
-from conf import LICENCE_FILE
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
@@ -16,10 +16,6 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 class NetworkSpotlightAgent():
     def __init__(self):
         self.children = {}
-        self._find_licence_file()
-
-    def _find_licence_file(self):
-        
 
     def _RPC_change_instance_metadata(self, args):
         instance_args = args['instance']['nova_object.data']
@@ -100,10 +96,17 @@ class NetworkSpotlightAgent():
         LOG.info('_vm_is_local: ' + hostname)
         return hostname == platform.node()
 
+    def _get_licence(self):
+        base_folder = "/etc/network_spotlight_agentd/"
+        for f in os.listdir(base_folder):
+            if ".bin" in f:
+                return base_folder+f
+        return ""
+
     def _enable_spotlight(self, tenant_id, user_id, instance_id, devices):
         LOG.info('_enable_spotlight %s %s %s', tenant_id, instance_id, str(devices))
         for d in devices:
-            cmd_line = "python pcap_pyqmflow.py -i %s -l %s " % (d, LICENCE_FILE)
+            cmd_line = "network_spotlight_worker -i %s -l %s " % (d, self._get_licence())
             cmd_line = cmd_line + "--tenant-id '%s' --user-id '%s' --instance-id '%s'" % (tenant_id, user_id, instance_id)
             self.children[d] = subprocess.Popen(cmd_line, shell=True)
 
