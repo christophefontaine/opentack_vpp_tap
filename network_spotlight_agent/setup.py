@@ -31,6 +31,7 @@ setup(
     provides = ['network_spotlight_agentd'],
     zip_safe = False,
     packages = find_packages(exclude=["ut_*"]),
+    install_requires=["requests", "pika", "pcapy"],
     package_data = {'network_spotlight_agentd': ['ixe/pyqmflow.so', 'ixe/protodef.proto']},
     data_files = [('/etc/network_spotlight_agentd/', ['etc/extracted_metadata.txt']), ],
     entry_points = {
