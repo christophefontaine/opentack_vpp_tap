@@ -1,3 +1,9 @@
 This repo contains 2 modules
-*openstack_panel: UI which integrates into Horizon
-*network_spotlight_adgent: daemon which listens events sent from the panel and create/termiante ixe instances
+* openstack_panel: UI which integrates into Horizon
+* network_spotlight_agentd: daemon which listens events sent from the panel and create/termiante ixe instances
+
+Installation:
+* run script "install.sh"
+* copy binary licence file "Qxxxxxxxx-20160101.bin" to "/etc/network_spotlight_agentd/"
+* start visibility service (systemctl start qosmos-network-spotlight-agentd) and horizon (systemctl restart httpd)
+* OR reboot the compute nodes
