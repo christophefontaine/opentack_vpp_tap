@@ -25,7 +25,7 @@ def _setup():
                 m = prog.match(line)
                 if m is not None:
                     telemetry_secret = m.group(1)
-                    LOG.debug('telemetry_secret found')
+                    LOG.info('telemetry_secret found')
                     break
     if telemetry_secret is not None:
         cfg.CONF.unregister_opts([cfg.StrOpt('telemetry_secret')],
@@ -33,7 +33,7 @@ def _setup():
         cfg.CONF.register_opts([cfg.StrOpt('telemetry_secret',
                                 default=telemetry_secret)],
                                group="publisher")
-        LOG.debug("Set telemetry_secret to %s" % telemetry_secret)
+        LOG.info("Set telemetry_secret to %s" % telemetry_secret)
     else:
         raise Exception('metering_secret NOT FOUND')
     messaging.setup()

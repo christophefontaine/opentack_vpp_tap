@@ -7,10 +7,10 @@ import logging
 import json
 import subprocess
 import signal
+import sys
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-
 
 
 class NetworkSpotlightAgent():
@@ -119,10 +119,21 @@ class NetworkSpotlightAgent():
                 process.wait()
                 del self.children[d]
 
+_agent = None
+
+def sigterm_handler(_signo, _stack_frame):
+    if _agent:
+        for child in _agent.children:
+            child.send_signal(signal.SIGTERM) 
+            child.wait()
+    # Raises SystemExit(0):
+    sys.exit(0)
 
 def main():
-    nsa = NetworkSpotlightAgent()
-    MQHooks.append(nsa)
+    global _agent
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    _agent = NetworkSpotlightAgent()
+    MQHooks.append(_agent)
     run_listener("nova", "compute.#")
 
 
