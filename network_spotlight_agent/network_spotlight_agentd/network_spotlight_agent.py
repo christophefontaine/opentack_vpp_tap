@@ -122,8 +122,10 @@ class NetworkSpotlightAgent():
 _agent = None
 
 def sigterm_handler(_signo, _stack_frame):
+    LOG.info("SIGTERM received")
     if _agent:
-        for child in _agent.children:
+        for child in _agent.children.values():
+            LOG.info("Killing %s "% str(child))
             child.send_signal(signal.SIGTERM) 
             child.wait()
     # Raises SystemExit(0):

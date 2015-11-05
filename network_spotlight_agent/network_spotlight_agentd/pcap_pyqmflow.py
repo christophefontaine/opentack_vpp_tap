@@ -9,7 +9,7 @@ import traceback
 import re
 import pcapy
 import publisher
-from conf_metadata import SUBSCRIBED_METADATAS
+import imp
 from protocols import protocols as p
 
 __author__ = "Christophe Fontaine"
@@ -39,8 +39,15 @@ class IXE():
         self._flows = {}
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
+        try:
+            SUBSCRIBED_METADATAS = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/extracted_metadata.py").SUBSCRIBED_METADATAS
+        except Exception:
+            LOG.error('*********************************** ERROR ****************************************')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+            raise
         for protocol in SUBSCRIBED_METADATAS:
-            LOG.info("Subscribing to %s-%s" % (str(protocol._parent), str(protocol)))
+            LOG.info("Subscribing to %s.%s" % (str(protocol._parent), str(protocol)))
             qm.md_subscribe(int(protocol._parent), int(protocol))
 
     def metadata_cb(self, md_dict):
@@ -125,17 +132,18 @@ def cleanup():
 
 
 def sigterm_handler(_signo, _stack_frame):
-    LOG.info("Worker - Quit")
+    LOG.info("Worker - sigterm_handler - Quit")
     if _ixe:
         _ixe.stop()
     cleanup()
+    LOG.info("Worker - sigterm_handler - Bye")
     # Raises SystemExit(0):
     sys.exit(0)
 
 
 def main():
     global _ixe
-    signal.signal(signal.SIGTERM, sigterm_handler)
+#    signal.signal(signal.SIGTERM, sigterm_handler)
     parser = optparse.OptionParser()
     parser.add_option('-i', '--interface',
                       dest='interface',
@@ -159,6 +167,7 @@ def main():
     finally:
         _ixe.stop()
         cleanup()
+    LOG.info("Worker - Bye")
 
 
 if __name__ == '__main__':
