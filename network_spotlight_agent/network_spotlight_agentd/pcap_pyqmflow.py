@@ -10,7 +10,7 @@ import re
 import pcapy
 import publisher
 import imp
-from protocols import protocols as p
+from protocols import protocols
 
 __author__ = "Christophe Fontaine"
 __email__ = "christophe.fontaine@qosmos.com"
@@ -59,12 +59,10 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
-            LOG.info("metadata_cb - " + str(md_dict))           
-            if not md_dict['flow_sig'] in self._flows:
-                self._flows[md_dict['flow_sig']] = { "app_id":0, "client-bytes": 0, "server-bytes":0 }
+            if not (md_dict['flow_sig'] in self._flows.keys()):
+               self._flows[md_dict['flow_sig']] = { "app_id":0, "metadata": {}, "client-bytes": 0, "server-bytes":0 }
             update(self._flows[md_dict['flow_sig']], md_dict)
             if "expired" in md_dict:               
-                LOG.info("publish - " + str(self._flows[md_dict['flow_sig']]))
                 publisher.publish(self.tenant_id or 'admin',
                                   self.user_id or 'admin',
                                   self.instance_id,
@@ -84,17 +82,17 @@ class IXE():
                 ret = qm.process_packet(pdata=packet, time=header.getts())
                 if ret:
                     (sig, offloaded, result, proto, way) = ret
-                    if not sig in self._flows:
-                        self._flows[sig] = { "app_id":0, "client-bytes": 0, "server-bytes":0}
-                    if not "start_time" in self._flows[sig]:
-                        self._flows[sig]["flow_start_time"] = (header.getts()[1]) + (header.getts()[0] << 32)
-                    self._flows[sig]["flow_end_time"] = (header.getts()[1]) + (header.getts()[0] << 32)
-
-                    delta_ts = float(self._flows[sig]["flow_end_time"] - self._flows[sig]["flow_start_time"]) / 1000000.
+                    if not (sig in self._flows):
+                        self._flows[sig] = { "app_id":0, "metadata": {}, "client_bytes": 0, "server_bytes":0 }
+                    if not ("flow_start_time" in self._flows[sig]):
+                        self._flows[sig]["flow_start_time"] = float(header.getts()[0] + (header.getts()[1]/1000000.))
+                    self._flows[sig]["flow_end_time"] = float(header.getts()[0] + (header.getts()[1]/1000000.))
+                    self._flows[sig][way+"_bytes"] += len(packet)
+                    delta_ts = self._flows[sig]["flow_end_time"] - self._flows[sig]["flow_start_time"]
+                    self._flows[sig]['metadata'][(int(protocols.base), int(protocols.base.duration))] = delta_ts
                     if delta_ts > 0.:
-                        self._flows[sig]["throughput-client"] = (self._flows[sig]["client-bytes"] / delta_ts) *8
-                        self._flows[sig]["throughput-server"] = (self._flows[sig]["server-bytes"] / delta_ts) *8
-                    self._flows[sig][way+"-bytes"] += len(packet)
+                        self._flows[sig]["throughput_client"] = (self._flows[sig]["client_bytes"] / delta_ts) * 8
+                        self._flows[sig]["throughput_server"] = (self._flows[sig]["server_bytes"] / delta_ts) * 8
             except pcapy.PcapError:
                 LOG.error("pcapy.PcapError")
                 pass
