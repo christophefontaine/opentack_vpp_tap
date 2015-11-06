@@ -8,18 +8,15 @@ import argparse
 import traceback
 from threading import Thread
 
-# All conf variables are in conf.py
-from conf import RABBIT_USER, RABBIT_PASSWORD, RABBIT_SERVER
-
 MQHooks = []
 
 
 class AMQPListener(Thread):
-    def __init__(self, exchange_name, routing_key):
+    def __init__(self, rabbit_user, rabbit_password, rabbit_server, exchange_name, routing_key):
         Thread.__init__(self)
         self.daemon = True
-        credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASSWORD)
-        conn_param = pika.ConnectionParameters(host=RABBIT_SERVER,
+        credentials = pika.PlainCredentials(rabbit_user, rabbit_password)
+        conn_param = pika.ConnectionParameters(host=rabbit_server,
                                                credentials=credentials)
         self.connection = pika.BlockingConnection(conn_param)
         self.channel = self.connection.channel()
@@ -72,8 +69,8 @@ def list_exchanges():
     return re.findall('\n?(.*)\ttopic\n', subprocess.check_output('rabbitmqctl list_exchanges', shell=True))
 
 
-def run_listener(exchange_name, routing_key):
-    listener = AMQPListener(exchange_name, routing_key)
+def run_listener(rabbit_user, rabbit_password, rabbit_server, exchange_name, routing_key):
+    listener = AMQPListener(rabbit_user, rabbit_password, rabbit_server, exchange_name, routing_key)
     try:
         listener.run()
     except KeyboardInterrupt:
@@ -81,6 +78,7 @@ def run_listener(exchange_name, routing_key):
 
 
 def main():
+    from conf import RABBIT_USER, RABBIT_PASSWORD, RABBIT_SERVER
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--topic', default='nova',
                         required=True, dest='exchange_name',
@@ -91,7 +89,7 @@ def main():
                         help='MQ routing key, default to "#"')
     args = parser.parse_args()
     print ' [*] Waiting for messages [%s:%s] To exit press CTRL+C' % (args.exchange_name, args.routing_key)
-    run_listener(args.exchange_name, args.routing_key)
+    run_listener(RABBIT_USER, RABBIT_PASSWORD, RABBIT_SERVER, args.exchange_name, args.routing_key)
 
 
 if __name__ == '__main__':

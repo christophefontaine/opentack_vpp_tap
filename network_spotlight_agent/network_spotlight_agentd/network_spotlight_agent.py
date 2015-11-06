@@ -2,6 +2,7 @@
 # Copyright  Qosmos 2000-2015 - All rights reserved
 
 import os
+import imp
 import platform
 import logging
 import json
@@ -131,12 +132,15 @@ def sigterm_handler(_signo, _stack_frame):
     # Raises SystemExit(0):
     sys.exit(0)
 
+
 def main():
     global _agent
     signal.signal(signal.SIGTERM, sigterm_handler)
     _agent = NetworkSpotlightAgent()
     MQHooks.append(_agent)
-    run_listener("nova", "compute.#")
+    conf_rabbit = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/conf_rabbit.py")
+    run_listener(conf_rabbit.RABBIT_USER, conf_rabbit.RABBIT_PASSWORD,
+                 conf_rabbit.RABBIT_SERVER, "nova", "compute.#")
 
 
 if __name__ == '__main__':
