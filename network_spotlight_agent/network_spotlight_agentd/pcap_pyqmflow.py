@@ -12,7 +12,7 @@ import impacket
 from impacket.ImpactDecoder import EthDecoder
 import publisher
 import imp
-from protocols import protocols
+from protocols import protocols as ixe_protocols
 
 __author__ = "Christophe Fontaine"
 __email__ = "christophe.fontaine@qosmos.com"
@@ -44,6 +44,7 @@ class IXE():
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
         try:
+            self._add_application_specific_ixe_protocols()
             self._build_aggregators()
             SUBSCRIBED_METADATAS = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/extracted_metadata.py").SUBSCRIBED_METADATAS
         except Exception:
@@ -54,6 +55,15 @@ class IXE():
         for protocol in SUBSCRIBED_METADATAS:
             LOG.info("Subscribing to %s.%s" % (str(protocol._parent), str(protocol)))
             qm.md_subscribe(int(protocol._parent), int(protocol))
+
+    def _add_application_specific_ixe_protocols(self):
+        from protocols import Protocols
+        metadata_index = 65536
+        application_specific_attributes = ['client_bytes', 'server_bytes',
+                                           'client_throughput', 'server_throughput']
+        for attr in application_specific_attributes:
+             ixe_protocols.base.__dict__[attr] = Protocols.Protocol(attr, metadata_index, ixe_protocols.base)
+             metadata_index += 1
 
     def _build_aggregators(self):
         import inspect
@@ -84,7 +94,7 @@ class IXE():
                self._flows[flow_sig] = { "app_id":0, "metadata": {}, "client-bytes": 0, "server-bytes":0 }
             flow = self._flows[flow_sig]
             update(flow, md_dict)
-            aggregator = self._aggregators.get(flow["app_id"] , self._aggregators[int(protocols.base)])
+            aggregator = self._aggregators.get(flow["app_id"] , self._aggregators[int(ixe_protocols.base)])
 
             if aggregator.metadata_cb(flow):
                 LOG.info(flow)
@@ -100,6 +110,25 @@ class IXE():
             exc_type, exc_value, exc_traceback = sys.exc_info()
             LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
+    def _new_flow(self, sig, header, packet):
+		eth = EthDecoder().decode(packet)
+		ip=eth.child()
+		metadata = {}
+		metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.client_addr))] = ip.get_ip_src()
+		metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.server_addr))] = ip.get_ip_dst()
+		transport = ip.child()
+		if ip.get_ip_p() == impacket.ImpactPacket.UDP.protocol:
+			 metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.client_port))] = transport.get_uh_sport()
+			 metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.server_port))] = transport.get_uh_dport()
+		if ip.get_ip_p() == impacket.ImpactPacket.TCP.protocol:
+			 metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.client_port))] = transport.get_th_sport()
+			 metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.server_port))] = transport.get_th_dport()
+		metadata[(int(ixe_protocols.base), int(ixe_protocols.base.client_bytes))] = 0
+		metadata[(int(ixe_protocols.base), int(ixe_protocols.base.server_bytes))] = 0
+
+		self._flows[sig] = { "app_id":0, "metadata": metadata,
+							 "flow_start_time": float(header.getts()[0] + (header.getts()[1]/1000000.)) }        
+
     def run(self):
         while True:
             try:
@@ -109,30 +138,19 @@ class IXE():
                 if ret:
                     (sig, offloaded, result, proto, way) = ret
                     if not (sig in self._flows):
-                        eth = EthDecoder().decode(packet)
-                        ip=eth.child()
-                        metadata = {}
-                        metadata[(int(protocols.ip), int(protocols.ip.client_addr))] = ip.get_ip_src()
-                        metadata[(int(protocols.ip), int(protocols.ip.server_addr))] = ip.get_ip_dst()
-                        transport = ip.child()
-                        if ip.get_ip_p() == impacket.ImpactPacket.UDP.protocol:
-                             metadata[(int(protocols.udp), int(protocols.udp.client_port))] = transport.get_uh_sport()
-                             metadata[(int(protocols.udp), int(protocols.udp.server_port))] = transport.get_uh_dport()
-                        if ip.get_ip_p() == impacket.ImpactPacket.TCP.protocol:
-                             metadata[(int(protocols.tcp), int(protocols.tcp.client_port))] = transport.get_th_sport()
-                             metadata[(int(protocols.tcp), int(protocols.tcp.server_port))] = transport.get_th_dport()
-
-                        self._flows[sig] = { "app_id":0, "metadata": metadata,
-                                             "client_bytes": 0, "server_bytes":0,
-                                             "flow_start_time": float(header.getts()[0] + (header.getts()[1]/1000000.)) }
-
+                        self._new_flow(sig, header, packet)
                     self._flows[sig]["flow_end_time"] = float(header.getts()[0] + (header.getts()[1]/1000000.))
-                    self._flows[sig][way+"_bytes"] += len(packet)
+                    if way == "client":
+                        byte_count = (int(ixe_protocols.base), int(ixe_protocols.base.client_bytes))
+                        throughtput = (int(ixe_protocols.base), int(ixe_protocols.base.client_throughput))
+                    else:
+                        byte_count = (int(ixe_protocols.base), int(ixe_protocols.base.server_bytes))
+                        throughtput = (int(ixe_protocols.base), int(ixe_protocols.base.server_throughput))
+                    self._flows[sig]['metadata'][byte_count] += len(packet)
                     delta_ts = self._flows[sig]["flow_end_time"] - self._flows[sig]["flow_start_time"]
-                    self._flows[sig]['metadata'][(int(protocols.base), int(protocols.base.duration))] = delta_ts
+                    self._flows[sig]['metadata'][(int(ixe_protocols.base), int(ixe_protocols.base.duration))] = delta_ts
                     if delta_ts > 0.:
-                        self._flows[sig]["throughput_client"] = (self._flows[sig]["client_bytes"]*8 / delta_ts)
-                        self._flows[sig]["throughput_server"] = (self._flows[sig]["server_bytes"]*8 / delta_ts)
+                        self._flows[sig]['metadata'][throughtput] = (self._flows[sig]['metadata'][byte_count]*8 / delta_ts)
             except pcapy.PcapError:
                 LOG.error("pcapy.PcapError")
                 pass
