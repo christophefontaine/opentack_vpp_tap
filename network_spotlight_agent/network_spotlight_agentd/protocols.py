@@ -91,10 +91,10 @@ def _load():
     proto = {}
     current_proto = ''
     for l in open(filename).read().split('\n'):
-        m_mpa = re.search('^  \(mpa ([a-zA-Z_]*) ([\-0-9]*)\)$', l)
-        m_proto = re.search('^  \(proto ([a-zA-Z_]*) ([\-0-9]*)\)?$', l)
-        m_proto_attr = re.search('^    \(([a-zA-Z_]*) ([\-0-9]*)\)$', l)
-        m_proto_attr_mpa = re.search('^    \(([a-zA-Z_]*) mpa\)$', l)
+        m_mpa = re.search('^  \(mpa ([a-zA-Z0-9_]*) ([\-0-9]*)\)$', l)
+        m_proto = re.search('^  \(proto ([a-zA-Z0-9_]*) ([\-0-9]*)\)?$', l)
+        m_proto_attr = re.search('^    \(([a-zA-Z0-9_]*) ([\-0-9]*)\)$', l)
+        m_proto_attr_mpa = re.search('^    \(([a-zA-Z0-9_]*) mpa\)\)?$', l)
         if m_mpa:
             mpa[m_mpa.group(1)] = int(m_mpa.group(2))
         if m_proto:
