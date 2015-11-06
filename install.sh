@@ -4,7 +4,7 @@
 # 
 
 yum install python-pip pcapy
-pip install pika
+pip install pika impacket
 
 for module in network_spotlight_agent openstack_panel ; do
     echo $module

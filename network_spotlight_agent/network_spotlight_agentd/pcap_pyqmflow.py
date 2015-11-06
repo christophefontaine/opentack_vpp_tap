@@ -8,6 +8,8 @@ import signal
 import traceback
 import re
 import pcapy
+import impacket
+from impacket.ImpactDecoder import EthDecoder
 import publisher
 import imp
 from protocols import protocols
@@ -36,6 +38,7 @@ def update(d, u):
 class IXE():
     def __init__(self, interface):
         self.cap = pcapy.open_live(interface, 65536, 1, 0)
+        self.cap.setfilter('ip')
         self._flows = {}
         self._aggregators = {}
         # Example to retreive metadatas from flows
@@ -84,6 +87,7 @@ class IXE():
             aggregator = self._aggregators.get(flow["app_id"] , self._aggregators[int(protocols.base)])
 
             if aggregator.metadata_cb(flow):
+                LOG.info(flow)
                 publisher.publish(self.tenant_id or 'admin',
                                   self.user_id or 'admin',
                                   self.instance_id,
@@ -105,16 +109,30 @@ class IXE():
                 if ret:
                     (sig, offloaded, result, proto, way) = ret
                     if not (sig in self._flows):
-                        self._flows[sig] = { "app_id":0, "metadata": {}, "client_bytes": 0, "server_bytes":0 }
-                    if not ("flow_start_time" in self._flows[sig]):
-                        self._flows[sig]["flow_start_time"] = float(header.getts()[0] + (header.getts()[1]/1000000.))
+                        eth = EthDecoder().decode(packet)
+                        ip=eth.child()
+                        metadata = {}
+                        metadata[(int(protocols.ip), int(protocols.ip.client_addr))] = ip.get_ip_src()
+                        metadata[(int(protocols.ip), int(protocols.ip.server_addr))] = ip.get_ip_dst()
+                        transport = ip.child()
+                        if ip.get_ip_p() == impacket.ImpactPacket.UDP.protocol:
+                             metadata[(int(protocols.udp), int(protocols.udp.client_port))] = transport.get_uh_sport()
+                             metadata[(int(protocols.udp), int(protocols.udp.server_port))] = transport.get_uh_dport()
+                        if ip.get_ip_p() == impacket.ImpactPacket.TCP.protocol:
+                             metadata[(int(protocols.tcp), int(protocols.tcp.client_port))] = transport.get_th_sport()
+                             metadata[(int(protocols.tcp), int(protocols.tcp.server_port))] = transport.get_th_dport()
+
+                        self._flows[sig] = { "app_id":0, "metadata": metadata,
+                                             "client_bytes": 0, "server_bytes":0,
+                                             "flow_start_time": float(header.getts()[0] + (header.getts()[1]/1000000.)) }
+
                     self._flows[sig]["flow_end_time"] = float(header.getts()[0] + (header.getts()[1]/1000000.))
                     self._flows[sig][way+"_bytes"] += len(packet)
                     delta_ts = self._flows[sig]["flow_end_time"] - self._flows[sig]["flow_start_time"]
                     self._flows[sig]['metadata'][(int(protocols.base), int(protocols.base.duration))] = delta_ts
                     if delta_ts > 0.:
-                        self._flows[sig]["throughput_client"] = (self._flows[sig]["client_bytes"] / delta_ts) * 8
-                        self._flows[sig]["throughput_server"] = (self._flows[sig]["server_bytes"] / delta_ts) * 8
+                        self._flows[sig]["throughput_client"] = (self._flows[sig]["client_bytes"]*8 / delta_ts)
+                        self._flows[sig]["throughput_server"] = (self._flows[sig]["server_bytes"]*8 / delta_ts)
             except pcapy.PcapError:
                 LOG.error("pcapy.PcapError")
                 pass
