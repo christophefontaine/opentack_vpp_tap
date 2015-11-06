@@ -37,9 +37,11 @@ class IXE():
     def __init__(self, interface):
         self.cap = pcapy.open_live(interface, 65536, 1, 0)
         self._flows = {}
+        self._aggregators = {}
         # Example to retreive metadatas from flows
         qm.set_callback(self.metadata_cb)
         try:
+            self._build_aggregators()
             SUBSCRIBED_METADATAS = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/extracted_metadata.py").SUBSCRIBED_METADATAS
         except Exception:
             LOG.error('*********************************** ERROR ****************************************')
@@ -50,6 +52,21 @@ class IXE():
             LOG.info("Subscribing to %s.%s" % (str(protocol._parent), str(protocol)))
             qm.md_subscribe(int(protocol._parent), int(protocol))
 
+    def _build_aggregators(self):
+        import inspect
+        import aggregators
+        self._aggregators = {}
+        for subpackage in aggregators.__dict__.values():
+            if inspect.ismodule(subpackage):
+                for (aggregator_name, aggregator) in inspect.getmembers(subpackage, inspect.isclass):
+                    print  aggregator_name + "-"+ str(aggregator)
+                    try:
+                        instance = aggregator()
+                        self._aggregators[int(instance.protocol)] = instance
+                        print self._aggregators
+                    except:
+                        pass
+
     def metadata_cb(self, md_dict):
         """
         Metadata Extraction:
@@ -59,15 +76,20 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
-            if not (md_dict['flow_sig'] in self._flows.keys()):
-               self._flows[md_dict['flow_sig']] = { "app_id":0, "metadata": {}, "client-bytes": 0, "server-bytes":0 }
-            update(self._flows[md_dict['flow_sig']], md_dict)
-            if "expired" in md_dict:               
+            flow_sig = md_dict['flow_sig']
+            if not (flow_sig in self._flows.keys()):
+               self._flows[flow_sig] = { "app_id":0, "metadata": {}, "client-bytes": 0, "server-bytes":0 }
+            flow = self._flows[flow_sig]
+            update(flow, md_dict)
+            aggregator = self._aggregators.get(flow["app_id"] , self._aggregators[int(protocols.base)])
+
+            if aggregator.metadata_cb(flow):
                 publisher.publish(self.tenant_id or 'admin',
                                   self.user_id or 'admin',
                                   self.instance_id,
-                                  self._flows[md_dict['flow_sig']])
-                del self._flows[md_dict['flow_sig']]
+                                  flow)
+            if "expired" in md_dict :
+                del self._flows[flow_sig]
                 
         except Exception:
             LOG.error('*********************************** ERROR ****************************************')
