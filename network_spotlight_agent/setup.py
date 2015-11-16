@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "network_spotlight_agentd",
-    version = "0.1.a0.dev-2",
+    version = "0.1.a0.dev-3",
     author = "Christophe Fontaine",
     author_email = "christophe.fontaine@qosmos.com",
     description = (""),
@@ -32,12 +32,12 @@ setup(
     zip_safe = False,
     packages = find_packages(exclude=["ut_*"]),
     install_requires=["requests", "pika", "pcapy", "impacket"],
-    package_data = {'network_spotlight_agentd': ['ixe/pyqmflow.so', 'ixe/protodef.proto']},
+    package_data = {'network_spotlight_agentd': ['ixe/pyixe.so', 'ixe/protodef.proto']},
     data_files = [('/etc/network_spotlight_agentd/', ['etc/extracted_metadata.py', 'etc/conf_rabbit.py']), ],
     entry_points = {
         'console_scripts': [
             'network_spotlight_agentd = network_spotlight_agentd.network_spotlight_agent:main',
-            'network_spotlight_worker = network_spotlight_agentd.pcap_pyqmflow:main'
+            'network_spotlight_worker = network_spotlight_agentd.pcap_pyixe:main'
         ]
     }
 )

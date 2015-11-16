@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyrights Qosmos 2015
-import ixe.pyqmflow as qm
+import ixe.pyixe as qm
 
 import optparse
 import sys

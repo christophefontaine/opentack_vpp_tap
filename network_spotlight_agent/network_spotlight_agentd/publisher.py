@@ -59,7 +59,7 @@ def publish(tenant_id, user_id, instance_id, blob, sample_name="network.visibili
     for (layer_id, attribute_id) in blob['metadata'].keys():
         layer =  p.proto_from_id(int(layer_id,))
         attribute = layer.attr_from_id(int(attribute_id))
-        metadatas[str(layer)+"."+str(attribute)] = blob['metadata'][(layer_id, attribute_id)]
+        metadatas[str(layer)+"_"+str(attribute)] = blob['metadata'][(layer_id, attribute_id)]
 
     visibility_sample = sample.Sample(
                name=sample_name,
