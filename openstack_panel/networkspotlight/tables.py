@@ -4,28 +4,9 @@ from horizon import tables
 from openstack_dashboard.dashboards.project.instances \
     import tables as project_tables
 from openstack_dashboard.api.nova import novaclient
+import socket
 import logging
 LOG = logging.getLogger(__name__)
-
-
-class NetworkVisibilityEnableAction(tables.Action):
-    name = 'networkvisibility_enable_action'
-    verbose_name = 'Enable Monitoring'
-
-    def single(self, table, request, object_id):
-        instance = table.get_object_by_id(object_id)
-        instance.visibility_enabled = 'True'
-	novaclient(request).servers.set_meta_item(str(instance.id), 'nsa', 'True')
-
-
-class NetworkVisibilityDisableAction(tables.Action):
-    name = 'networkvisibility_disable_action'
-    verbose_name = 'Disable Monitoring'
-
-    def single(self, table, request, object_id):
-        instance = table.get_object_by_id(object_id)
-        instance.visibility_enabled = 'False'
-	novaclient(request).servers.set_meta_item(str(instance.id), 'nsa', 'False')
 
 
 class ToggleNetworkVisibility(tables.BatchAction):
@@ -79,8 +60,14 @@ class NetworkVisibilityLink(tables.LinkAction):
     verbose_name = 'Go To Kibana'
     
     def get_link_url(self, datum=None):
-        LOG.info(self)
-        return 'http://kibana/'
+        kibana_ip = str(socket.gethostbyname(socket.gethostname()))
+        kibana_port = '5601'
+        if datum:
+            instance_id = self.table.get_object_id(datum)
+        # query should be something like :
+        # network.visibility && 1bd8828e-3daf-439a-8484-0e1332bd6079
+        url = "http://{kibana_ip}:{kibana_port}/app/kibana#/discover/network_visibility?_a=%28columns:!%28_source%29,filters:!%28%29,index:ceilometer,interval:auto,query:%28query_string:%28analyze_wildcard:!t,query:%27network.visibility%20%26%26%20{vm_id}%20%27%29%29,sort:!%28timestamp,desc%29%29&_g=%28filters:!%28%29,refreshInterval:%28display:%271%20day%27,pause:!f,section:3,value:86400000%29,time:%28from:now-1h,mode:quick,to:now%29%29".format(kibana_ip=kibana_ip, kibana_port=kibana_port, vm_id=instance_id or '')
+        return url
 
 
 class InstancesTable(tables.DataTable):

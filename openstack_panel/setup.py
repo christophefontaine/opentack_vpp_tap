@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "networkspotlight",
-    version = "0.1.a0.dev-3",
+    version = "0.1.a0.dev-4",
     author = "Christophe Fontaine",
     author_email = "christophe.fontaine@qosmos.com",
     description = (""),
