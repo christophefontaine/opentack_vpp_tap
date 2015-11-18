@@ -9,6 +9,7 @@ import json
 import subprocess
 import signal
 import sys
+from threading import Timer
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
@@ -134,10 +135,18 @@ def sigterm_handler(_signo, _stack_frame):
 
 
 def main():
+    import nova_tools
     global _agent
     signal.signal(signal.SIGTERM, sigterm_handler)
     _agent = NetworkSpotlightAgent()
     MQHooks.append(_agent)
+
+    def delayed_func():
+        LOG.info("In delayed_func")
+        nova_tools.enable_spotlight_agents()
+        
+    Timer(5, delayed_func).start()
+
     conf_rabbit = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/conf_rabbit.py")
     run_listener(conf_rabbit.RABBIT_USER, conf_rabbit.RABBIT_PASSWORD,
                  conf_rabbit.RABBIT_SERVER, "nova", "compute.#")
