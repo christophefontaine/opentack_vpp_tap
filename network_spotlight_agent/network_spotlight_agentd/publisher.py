@@ -1,5 +1,4 @@
 import datetime
-from Queue import Queue
 from oslo_config import cfg
 from oslo_context import context
 from oslo_utils import netutils
@@ -54,12 +53,20 @@ def _context():
 def publish(tenant_id, user_id, instance_id, blob, sample_name="network.visibility"):
     metadatas = {}
     metadatas['app_name'] =  str(p.proto_from_id(int(blob['app_id'])))
+    metadatas['proto_path'] = None
+    for proto in blob['proto_path']:
+        if metadatas['proto_path'] is None:
+            metadatas['proto_path'] = str(p.proto_from_id(proto))
+        else:
+            metadatas['proto_path'] = metadatas['proto_path'] + '.' + str(p.proto_from_id(proto))
     metadatas['flow_sig'] = blob['flow_sig']
 
     for (layer_id, attribute_id) in blob['metadata'].keys():
         layer =  p.proto_from_id(int(layer_id,))
         attribute = layer.attr_from_id(int(attribute_id))
-        metadatas[str(layer)+"_"+str(attribute)] = blob['metadata'][(layer_id, attribute_id)]
+        if not str(layer) in metadatas:
+            metadatas[str(layer)] = {}
+        metadatas[str(layer)][str(attribute)] = blob['metadata'][(layer_id, attribute_id)]
 
     visibility_sample = sample.Sample(
                name=sample_name,
@@ -72,5 +79,5 @@ def publish(tenant_id, user_id, instance_id, blob, sample_name="network.visibili
                timestamp=datetime.datetime.utcnow().isoformat(),
                resource_metadata=metadatas,
                )
-    LOG.info(metadatas)
+    LOG.debug("PUBLISH ---- " + str(metadatas))
     _publisher().publish_samples(_context(), [visibility_sample])

@@ -17,10 +17,9 @@ from protocols import protocols as ixe_protocols
 __author__ = "Christophe Fontaine"
 __email__ = "christophe.fontaine@qosmos.com"
 __company__ = "Qosmos"
-
 import logging
 LOG = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 _ixe = None
 
@@ -33,6 +32,25 @@ def update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+colours={"default":"",
+         "blue":   "\x1b[01;34m",
+         "cyan":   "\x1b[01;36m",
+         "green":  "\x1b[01;32m",
+         "red":    "\x1b[01;05;37;41m"}
+
+def dump_dict(flow):
+    colors = ["\x1b[01;34m", "\x1b[01;33m", "\x1b[01;35m", "\x1b[01;36m", "\x1b[01;32m", "\x1b[01;37m", "\x1b[01;05;37;41m"]
+    ret_str = '{'
+    for el in flow.keys():
+        if not el.startswith('_'):
+            if el == 'flow_sig':
+               ret_str = ret_str + str(el) + ": " + colors[hash(str(flow[el])) % len(colors)] + str(flow[el]) +  "\x1b[00m "
+            else:
+                ret_str = ret_str + str(el) + ": " + str(flow[el]) + " "
+    ret_str = ret_str + '}'
+    return ret_str
 
 
 class IXE():
@@ -52,9 +70,9 @@ class IXE():
             exc_type, exc_value, exc_traceback = sys.exc_info()
             LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
             raise
-        for protocol in SUBSCRIBED_METADATAS:
-            LOG.info("Subscribing to %s.%s" % (str(protocol._parent), str(protocol)))
-            qm.md_subscribe(int(protocol._parent), int(protocol))
+        for attribute in SUBSCRIBED_METADATAS:
+            LOG.info("Subscribing to %s.%s (%d.%d)" % (str(attribute._parent), str(attribute), int(attribute._parent), int(attribute)))
+            qm.md_subscribe(int(attribute._parent), int(attribute))
 
     def _add_application_specific_ixe_protocols(self):
         from protocols import Protocols
@@ -89,45 +107,46 @@ class IXE():
             and 'qm.md_subscribe'
         """
         try:
+            if len(md_dict['metadata']) > 0:
+                 LOG.debug('***************************************************************************************************\nmetadata_cb -- ' + dump_dict(md_dict))
             flow_sig = md_dict['flow_sig']
             if not (flow_sig in self._flows.keys()):
                self._flows[flow_sig] = { "app_id":0, "metadata": {}, "client-bytes": 0, "server-bytes":0 }
             flow = self._flows[flow_sig]
-            update(flow, md_dict)
-            aggregator = self._aggregators.get(flow["app_id"] , self._aggregators[int(ixe_protocols.base)])
+            aggregator = self._aggregators.get(md_dict["app_id"] , self._aggregators[int(ixe_protocols.base)])
+            aggegrated_data = aggregator.aggregate(flow, md_dict)
 
-            if aggregator.metadata_cb(flow):
-                LOG.info(flow)
+            if aggegrated_data:
                 publisher.publish(self.tenant_id or 'admin',
                                   self.user_id or 'admin',
                                   self.instance_id,
-                                  flow)
+                                  aggegrated_data)
             if "expired" in md_dict :
                 del self._flows[flow_sig]
-                
+
         except Exception:
             LOG.error('*********************************** ERROR ****************************************')
             exc_type, exc_value, exc_traceback = sys.exc_info()
             LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
     def _new_flow(self, sig, header, packet):
-		eth = EthDecoder().decode(packet)
-		ip=eth.child()
-		metadata = {}
-		metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.client_addr))] = ip.get_ip_src()
-		metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.server_addr))] = ip.get_ip_dst()
-		transport = ip.child()
-		if ip.get_ip_p() == impacket.ImpactPacket.UDP.protocol:
-			 metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.client_port))] = transport.get_uh_sport()
-			 metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.server_port))] = transport.get_uh_dport()
-		if ip.get_ip_p() == impacket.ImpactPacket.TCP.protocol:
-			 metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.client_port))] = transport.get_th_sport()
-			 metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.server_port))] = transport.get_th_dport()
-		metadata[(int(ixe_protocols.base), int(ixe_protocols.base.client_bytes))] = 0
-		metadata[(int(ixe_protocols.base), int(ixe_protocols.base.server_bytes))] = 0
+        eth = EthDecoder().decode(packet)
+        ip=eth.child()
+        metadata = {}
+        metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.client_addr))] = ip.get_ip_src()
+        metadata[(int(ixe_protocols.ip), int(ixe_protocols.ip.server_addr))] = ip.get_ip_dst()
+        transport = ip.child()
+        if ip.get_ip_p() == impacket.ImpactPacket.UDP.protocol:
+             metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.client_port))] = transport.get_uh_sport()
+             metadata[(int(ixe_protocols.udp), int(ixe_protocols.udp.server_port))] = transport.get_uh_dport()
+        if ip.get_ip_p() == impacket.ImpactPacket.TCP.protocol:
+             metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.client_port))] = transport.get_th_sport()
+             metadata[(int(ixe_protocols.tcp), int(ixe_protocols.tcp.server_port))] = transport.get_th_dport()
+        metadata[(int(ixe_protocols.base), int(ixe_protocols.base.client_bytes))] = 0
+        metadata[(int(ixe_protocols.base), int(ixe_protocols.base.server_bytes))] = 0
 
-		self._flows[sig] = { "app_id":0, "metadata": metadata,
-							 "flow_start_time": float(header.getts()[0] + (header.getts()[1]/1000000.)) }        
+        self._flows[sig] = { "app_id":0, "metadata": metadata,
+                                     "flow_start_time": float(header.getts()[0] + (header.getts()[1]/1000000.)) }        
 
     def run(self):
         while True:
