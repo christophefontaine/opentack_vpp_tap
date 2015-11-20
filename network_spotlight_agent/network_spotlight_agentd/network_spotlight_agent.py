@@ -12,7 +12,6 @@ import sys
 from threading import Timer
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 class NetworkSpotlightAgent():
@@ -142,15 +141,30 @@ def main():
     MQHooks.append(_agent)
 
     def delayed_func():
-        LOG.info("In delayed_func")
+        LOG.debug("In delayed_func")
         nova_tools.enable_spotlight_agents()
         
     Timer(5, delayed_func).start()
-
-    conf_rabbit = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/conf_rabbit.py")
-    run_listener(conf_rabbit.RABBIT_USER, conf_rabbit.RABBIT_PASSWORD,
-                 conf_rabbit.RABBIT_SERVER, "nova", "compute.#")
+    run_listener("nova", "compute.#")
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--logging', default='INFO',
+                        required=False, dest='logging',
+                        choices = ['DEBUG', 'INFO', 'WARN', 'CRITICAL', 'ERROR', 'FATAL', ],
+                        help='Define logging level')
+    args = parser.parse_args()
+    if args.logging == 'DEBUG':
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    elif args.logging == 'INFO':
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+    elif args.logging == 'CRITICAL':
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
+    elif args.logging == 'ERROR':
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
+    elif args.logging == 'FATAL':
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.FATAL)
+    logging.info("NetworkSpotlightAgent starting...")
     main()
