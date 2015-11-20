@@ -15,6 +15,8 @@ class HttpAggregator(_Aggregator):
         if HTTP_REQUEST in md_dict['metadata']:
             if md_dict['pkt_way'] == 'client':
                 if md_dict['metadata'][HTTP_REQUEST] == 'start':
+                    if 'client_request_end' in flow:
+                        del flow['client_request_end']
                     if 'client_request_start' in flow:
                         ret_flow = deepcopy(flow)
                         self._clean(flow)
@@ -23,10 +25,12 @@ class HttpAggregator(_Aggregator):
             if md_dict['metadata'][HTTP_REQUEST] == 'end':
                 ret_flow = deepcopy(flow)
                 self._clean(flow)
+                if 'client_request_start' in flow:
+                    del flow['client_request_start']
+                flow['client_request_end'] = True
             del md_dict['metadata'][HTTP_REQUEST]
-        elif 'expired' in flow:
-            if flow['client-bytes'] > 0:
-                ret_flow = flow
+        elif 'expired' in md_dict:
+            ret_flow = flow
         del md_dict['pkt_way']
         _Aggregator.update(flow, md_dict)
         return ret_flow
