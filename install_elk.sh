@@ -25,7 +25,7 @@ python enable_replica.py
 wget https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/rpm/elasticsearch/2.0.0/elasticsearch-2.0.0.rpm
 wget https://download.elastic.co/kibana/kibana/kibana-4.2.0-linux-x64.tar.gz
 tar -zxvf kibana-4.2.0-linux-x64.tar.gz
-rpm -i logstash-2.0.0-1.noarch.rpm elasticsearch-2.0.0.rpm
+rpm -i elasticsearch-2.0.0.rpm
 
 systemctl enable elasticsearch.service
 systemctl start elasticsearch.service
@@ -80,4 +80,18 @@ EOF
 systemctl enable /etc/systemd/system/kibana.service
 systemctl start kibana.service
 
+echo "Creating index template for ceilometer"
+curl -XDELETE http://localhost:9200/ceilometer 
+curl -XDELETE http://localhost:9200/_template/ceilometer
+curl -XPOST http://ajonc.labo:5601/elasticsearch/.kibana/config/4.2.0/_update -d '{"doc":{"defaultIndex":""}}'
+curl -XDELETE http://ajonc.labo:5601/elasticsearch/.kibana/index-pattern/ceilometer
+
+
+curl -XPOST http://localhost:9200/_template/ceilometer -d @ceilometer.template
+
+curl -XPOST http://localhost:9200/ceilometer
+curl -XPOST http://ajonc.labo:5601/elasticsearch/.kibana/index-pattern/ceilometer?op_type=create -d '{"title":"ceilometer","timeFieldName":"timestamp"}'
+curl -XPOST http://ajonc.labo:5601/elasticsearch/.kibana/config/4.2.0/_update -d '{"doc":{"defaultIndex":"ceilometer"}}'
+
+watch -n 1 curl -tXGET http://localhost:9200/_cat/indices?v
 

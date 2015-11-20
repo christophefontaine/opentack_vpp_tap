@@ -1,0 +1,136 @@
+{
+    "template": "ceilometer",
+
+        "filter" : {
+          "term" : {
+            "counter_name" : "network.visibility" 
+          }
+        },
+
+    "order": 0,
+    "aliases" : {
+      "l7visibility" : {
+        "filter" : {
+          "term" : {
+            "counter_name" : "network.visibility" 
+          }
+        }
+      }
+    },
+    "settings" : {
+        "index" : {
+            "number_of_shards" : 5,
+            "number_of_replicas" : 1
+        }
+    },
+    "mappings" : {
+      "qosmos" : {
+        "_ttl" : { "enabled" : false},
+        "properties" : {
+          "counter_name" : {
+            "type" : "string"
+          },
+          "project_id" : {
+            "type" : "string"
+          },
+          "recorded_at" : {
+            "type" : "date",
+            "format" : "strict_date_optional_time||epoch_millis"
+          },
+          "resource_id" : {
+            "type" : "string"
+          },
+          "resource_metadata" : {
+            "properties" : {
+              "app_name" : {
+                "type" : "string"
+              },
+              "base" : {
+                "properties" : {
+                  "client_bytes" : {
+                    "type" : "long"
+                  },
+                  "duration" : {
+                    "type" : "double"
+                  },
+                  "server_bytes" : {
+                    "type" : "long"
+                  }
+                }
+              },
+              "dns" : {
+                "properties" : {
+                  "host_addr" : {
+                    "type" : "string"
+                  }
+                }
+              },
+              "flow_sig" : {
+                "type" : "long"
+              },
+              "ftp" : {
+                "properties" : {
+                  "filename" : {
+                    "type" : "string"
+                  }
+                }
+              },
+              "ip" : {
+                "properties" : {
+                  "client_addr" : {
+                    "type" : "string"
+                  },
+                  "client_port" : {
+                    "type" : "long"
+                  },
+                  "server_addr" : {
+                    "type" : "string"
+                  },
+                  "server_port" : {
+                    "type" : "long"
+                  }
+                }
+              },
+              "proto_path" : {
+                "type" : "string"
+              },
+              "http": {
+                "properties" : {
+                  "host": {
+                    "type" : "string"
+                  },
+                  "method": {
+                    "type" : "string"
+                  },
+                  "server": {
+                    "type" : "string"
+                  },
+                  "uri_full": {
+                    "type" : "string"
+                  },
+                  "user_agent": {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "type" : "date",
+            "format" : "strict_date_optional_time||epoch_millis"
+          },
+          "user_id" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  },
+  "fieldFormatMap": {
+    "resource_metadata.base.client_bytes":{"id":"bytes"},
+    "resource_metadata.base.server_bytes":{"id":"bytes"}
+  }
+}
