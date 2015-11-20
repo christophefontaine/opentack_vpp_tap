@@ -10,7 +10,6 @@ from protocols import protocols as p
 
 import logging
 LOG = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 def _setup():
