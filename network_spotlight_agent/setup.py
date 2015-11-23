@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "network_spotlight_agentd",
-    version = "0.1.a0.dev-3",
+    version = "0.1.a0.dev-4",
     author = "Christophe Fontaine",
     author_email = "christophe.fontaine@qosmos.com",
     description = (""),
@@ -33,7 +33,7 @@ setup(
     packages = find_packages(exclude=["ut_*"]),
     install_requires=["requests", "pika", "pcapy", "impacket"],
     package_data = {'network_spotlight_agentd': ['ixe/pyixe.so', 'ixe/protodef.proto']},
-    data_files = [('/etc/network_spotlight_agentd/', ['etc/extracted_metadata.py', ]), ],
+    data_files = [('/etc/network_spotlight_agentd/', ['etc/extracted_metadata.py', 'etc/network_spotlight.conf']), ],
     entry_points = {
         'console_scripts': [
             'network_spotlight_agentd = network_spotlight_agentd.network_spotlight_agent:main',

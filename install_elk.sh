@@ -88,10 +88,17 @@ curl -XDELETE http://ajonc.labo:5601/elasticsearch/.kibana/index-pattern/ceilome
 
 
 curl -XPOST http://localhost:9200/_template/ceilometer -d @ceilometer.template
+curl -tXGET http://localhost:9200/_cat/indices?v
 
 curl -XPOST http://localhost:9200/ceilometer
+crl -tXGET http://localhost:9200/_cat/indices?v
 curl -XPOST http://ajonc.labo:5601/elasticsearch/.kibana/index-pattern/ceilometer?op_type=create -d '{"title":"ceilometer","timeFieldName":"timestamp"}'
 curl -XPOST http://ajonc.labo:5601/elasticsearch/.kibana/config/4.2.0/_update -d '{"doc":{"defaultIndex":"ceilometer"}}'
 
-watch -n 1 curl -tXGET http://localhost:9200/_cat/indices?v
+
+curl -tXGET http://localhost:9200/_cat/indices?v
+
+
+
+
 
