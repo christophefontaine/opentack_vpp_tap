@@ -15,14 +15,10 @@ _es = None
 def setup(user_config):
     global _config
     global _es
-    for (key, value) in user_config:
-        _config[key] = value
-    if not 'server' in _config:
-        raise Exception("Missing _configurartion parameter: server")
-    if not 'port' in _config:
-        raise Exception("Missing _configurartion parameter: port")
-    if not 'index' in _config:
-        raise Exception("Missing _configurartion parameter: index")
+    _config = user_config
+    for param in ['server', 'port', 'index']:
+        if not param  in _config:
+            raise Exception("Missing _configuration parameter: '%s'" % param)
     LOG.info("elasticsearch publisher - " + str(_config['server']) + ':' +  str(_config['port']) )
     _es = Elasticsearch()
 
