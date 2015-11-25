@@ -64,15 +64,24 @@ class Protocols(object):
                     return attr
             return None
 
+        @memoized
+        def attr_from_name(self, value):
+            for attr in self._attributes():
+                if attr._name == value:
+                    return attr
+            return None
+
     def __repr__(self):
         return str([proto for proto in self.__dict__
                            if not proto.startswith('_')])
 
     def __init__(self, protocols):
         self.protoname_from_id = {}
+        self.proto_from_name = {}
         for key in protocols.keys():
             self.__dict__[key] = Protocols.Protocol(key, protocols[key]['id'])
             self.protoname_from_id[protocols[key]['id']] = self.__dict__[key]
+            self.proto_from_name[key] = self.__dict__[key]
             for key_attr in protocols[key]['attr'].keys():
                 self.__dict__[key].__dict__[key_attr] = Protocols.Protocol(key_attr,
                                                                            protocols[key]['attr'][key_attr],

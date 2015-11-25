@@ -33,7 +33,7 @@ setup(
     packages = find_packages(exclude=["ut_*"]),
     install_requires=["requests", "pika", "pcapy", "impacket"],
     package_data = {'network_spotlight_agentd': ['ixe/pyixe.so', 'ixe/protodef.proto']},
-    data_files = [('/etc/network_spotlight_agentd/', ['etc/extracted_metadata.py', 'etc/network_spotlight.conf']), ],
+    data_files = [('/etc/network_spotlight_agentd/', ['etc/network_spotlight.conf']), ],
     entry_points = {
         'console_scripts': [
             'network_spotlight_agentd = network_spotlight_agentd.network_spotlight_agent:main',

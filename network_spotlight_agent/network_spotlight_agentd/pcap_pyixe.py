@@ -64,15 +64,32 @@ class IXE():
         try:
             self._add_application_specific_ixe_protocols()
             self._build_aggregators()
-            SUBSCRIBED_METADATAS = imp.load_source("extracted_metadata", "/etc/network_spotlight_agentd/extracted_metadata.py").SUBSCRIBED_METADATAS
+            for attribute in IXE._get_metadatas():
+                LOG.info("Subscribing to %s.%s (%d.%d)" % (str(attribute._parent), str(attribute), int(attribute._parent), int(attribute)))
+                qm.md_subscribe(int(attribute._parent), int(attribute))
         except Exception:
             LOG.error('*********************************** ERROR ****************************************')
             exc_type, exc_value, exc_traceback = sys.exc_info()
             LOG.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
             raise
-        for attribute in SUBSCRIBED_METADATAS:
-            LOG.info("Subscribing to %s.%s (%d.%d)" % (str(attribute._parent), str(attribute), int(attribute._parent), int(attribute)))
-            qm.md_subscribe(int(attribute._parent), int(attribute))
+
+    @staticmethod
+    def _get_metadatas():
+        from ConfigParser import ConfigParser
+        class MetadataConfigParser(ConfigParser):
+            def options(self, section):
+                return [el for el in self._sections[section] if not el.startswith('_')]
+
+        config = MetadataConfigParser()
+        config.read('/etc/network_spotlight_agentd/network_spotlight.conf')
+        attributes = []
+        for option in config.options('extracted_metadata'):
+            param = config.get('extracted_metadata', option)
+            proto = ixe_protocols.proto_from_name[option]
+            attrs = [proto.attr_from_name(attr.strip()) for attr in param.split(',')]
+            attributes.extend(attrs)
+        return attributes
+
 
     def _add_application_specific_ixe_protocols(self):
         from protocols import Protocols
