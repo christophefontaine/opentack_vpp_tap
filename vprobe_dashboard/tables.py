@@ -29,6 +29,7 @@ class ToggleVProbe(tables.BatchAction):
     def allowed(self, request, instance=None):
         LOG.warning("allowed")
         if not instance:
+            LOG.error("allowed: instance is None")
             return False
         
         if 'tap-enable' in instance.to_dict()['metadata']:
@@ -38,9 +39,9 @@ class ToggleVProbe(tables.BatchAction):
         instance.visibility_enabled = self.visibility_enabled
 
         if self.visibility_enabled:
-            self.current_present_action = ToggleNetworkVisibility.DISABLE
+            self.current_present_action = ToggleVProbe.DISABLE
         else:
-            self.current_present_action = ToggleNetworkVisibility.ENABLE
+            self.current_present_action = ToggleVProbe.ENABLE
         return True
 
     def action(self, request, instance_id):
@@ -48,14 +49,14 @@ class ToggleVProbe(tables.BatchAction):
         if self.visibility_enabled:
             self.visibility_enabled = False
             novaclient(request).servers.set_meta_item(instance_id, 'tap-enable', 'False')
-            self.current_past_action = ToggleNetworkVisibility.DISABLE
+            self.current_past_action = ToggleVProbe.DISABLE
         else:
             self.visibility_enabled = True
             novaclient(request).servers.set_meta_item(instance_id, 'tap-enable', 'True')
-            self.current_past_action = ToggleNetworkVisibility.ENABLE
+            self.current_past_action = ToggleVProbe.ENABLE
 
 
-class NetworkVisibilityLink(tables.LinkAction):
+class VProbeLink(tables.LinkAction):
     name = 'vprobe_go_to_kibana'
     verbose_name = 'Go To Kibana'
     
@@ -87,5 +88,5 @@ class InstancesTable(tables.DataTable):
     class Meta:
         name = "instances"
         verbose_name = _("Instances")
-        row_actions = (ToggleNetworkVisibility, NetworkVisibilityLink,)
+        row_actions = (ToggleVProbe, VProbeLink,)
         status_columns = ['status', 'visibility_enabled']
