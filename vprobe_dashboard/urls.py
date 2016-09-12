@@ -13,7 +13,7 @@
 from django.conf.urls import patterns
 from django.conf.urls import url
 
-from networkspotlight import views
+from vprobe_dashboard import views
 
 urlpatterns = patterns(
     '',

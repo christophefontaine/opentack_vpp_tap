@@ -9,8 +9,8 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-class ToggleNetworkVisibility(tables.BatchAction):
-    name = "toggle_networkvisibility"
+class ToggleVProbe(tables.BatchAction):
+    name = "toggle_vprobe"
     icon = "pause"
 
     ENABLE = 0
@@ -31,8 +31,8 @@ class ToggleNetworkVisibility(tables.BatchAction):
         if not instance:
             return False
         
-        if 'nsa' in instance.to_dict()['metadata']:
-            self.visibility_enabled = (instance.to_dict()['metadata']['nsa'] == 'True')
+        if 'tap-enable' in instance.to_dict()['metadata']:
+            self.visibility_enabled = (instance.to_dict()['metadata']['tap-enable'] == 'True')
         else:
             self.visibility_enabled = False
         instance.visibility_enabled = self.visibility_enabled
@@ -47,16 +47,16 @@ class ToggleNetworkVisibility(tables.BatchAction):
         LOG.warning("action")
         if self.visibility_enabled:
             self.visibility_enabled = False
-            novaclient(request).servers.set_meta_item(instance_id, 'nsa', 'False')
+            novaclient(request).servers.set_meta_item(instance_id, 'tap-enable', 'False')
             self.current_past_action = ToggleNetworkVisibility.DISABLE
         else:
             self.visibility_enabled = True
-            novaclient(request).servers.set_meta_item(instance_id, 'nsa', 'True')
+            novaclient(request).servers.set_meta_item(instance_id, 'tap-enable', 'True')
             self.current_past_action = ToggleNetworkVisibility.ENABLE
 
 
 class NetworkVisibilityLink(tables.LinkAction):
-    name = 'networkvisibility_go_to_kibana'
+    name = 'vprobe_go_to_kibana'
     verbose_name = 'Go To Kibana'
     
     def get_link_url(self, datum=None):

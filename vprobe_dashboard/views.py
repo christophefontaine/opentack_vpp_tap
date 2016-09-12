@@ -12,8 +12,8 @@ LOG = logging.getLogger(__name__)
 
 
 class IndexView(DataTableView):
-    template_name = 'admin/networkspotlight/index.html'
-    page_title = 'Network Spotlight'
+    template_name = 'admin/vprobe/index.html'
+    page_title = 'VProbe'
     table_class = tables.InstancesTable
 
     def get_data(self):
@@ -50,8 +50,8 @@ class IndexView(DataTableView):
                 instance.full_flavor = full_flavors[flavor_id]
             tenant = tenant_dict.get(instance.tenant_id, None)
             instance.tenant_name = getattr(tenant, "name", None)
-            if 'nsa' in instance.metadata:
-                instance.visibility_enabled = instance.metadata['nsa']
+            if 'tap-enable' in instance.metadata:
+                instance.visibility_enabled = instance.metadata['tap-enable']
             else:
                 instance.visibility_enabled = None
         return instances

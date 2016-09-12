@@ -13,6 +13,6 @@
 import horizon
 
 
-class NetworkSpotlight(horizon.Panel):
-    name = "Microsegmentation"
-    slug = 'networkspotlight'
+class VProbe(horizon.Panel):
+    name = "VProbe"
+    slug = 'vprobe'
