@@ -1,10 +1,6 @@
-This repo contains 2 modules
-* openstack_panel: UI which integrates into Horizon
-* network_spotlight_agentd: daemon which listens events sent from the panel and create/termiante ixe instances
+Openstack East/West Visibility Panel
 
-Installation:
-* run script "install.sh" to install visibility daemon & Openstack dashboard
-* run script "install_elk.sh" to download and install ElasticSearch, Kibana and mongo-connector
-* copy binary licence file "Qxxxxxxxx-20160101.bin" to "/etc/network_spotlight_agentd/"
-* start visibility service (systemctl start qosmos-network-spotlight-agentd) and horizon (systemctl restart httpd)
-* OR reboot the compute nodes
+To install the panel : 
+python setup.py build
+python setup.py install
+copy _99_nsa.py to /usr/share/openstack-dashboard/openstack_dashboard/local/enabled
