@@ -19,12 +19,12 @@ def _get_vms(nova):
     return nova.servers.list(search_opts={'all_tenants': 1, 'host': socket.gethostname()})
 
 
-def enable_spotlight_agents():
+def enable_vprobes():
     nova = _get_client()
     for vm in _get_vms(nova):
         vm_info = vm.to_dict()
         try:
-            if str(vm_info['metadata']['nsa']) == 'True':
-                nova.servers.set_meta_item(vm, 'nsa', 'True')
+            if str(vm_info['metadata']['tap-enable']) == 'True':
+                nova.servers.set_meta_item(vm, 'tap-enable', 'True')
         except:
             pass 

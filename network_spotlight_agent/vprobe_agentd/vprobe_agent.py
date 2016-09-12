@@ -14,7 +14,7 @@ from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 
 
-class NetworkSpotlightAgent():
+class VProbeAgent():
     def __init__(self):
         self.children = {}
 
@@ -30,8 +30,8 @@ class NetworkSpotlightAgent():
         LOG.info(instance_args['metadata'])
         LOG.info(str(dev_names))
         LOG.info("****************************************************")
-        if 'nsa' in instance_args['metadata'] and self._vm_is_local(instance_args['host']):
-            if instance_args['metadata']['nsa'] == 'True':
+        if 'tap-enable' in instance_args['metadata'] and self._vm_is_local(instance_args['host']):
+            if instance_args['metadata']['tap-enable'] == 'True':
                 self._enable_spotlight(instance_args['project_id'],
                                        instance_args['user_id'],
                                        instance_args['uuid'],
@@ -87,7 +87,7 @@ class NetworkSpotlightAgent():
         network_info = json.loads(j)
         dev_names = [n['devname'] for n in network_info]
         if 'nsa' in instance_args['metadata'] and self._vm_is_local(instance_args['host']):
-            if instance_args['metadata']['nsa'] == 'True':
+            if instance_args['metadata']['tap-enable'] == 'True':
                 self._disable_spotlight(instance_args['project_id'],
                                         instance_args['user_id'],
                                         instance_args['uuid'],
@@ -97,52 +97,28 @@ class NetworkSpotlightAgent():
         LOG.info('_vm_is_local: ' + hostname)
         return hostname == platform.node()
 
-    def _get_licence(self):
-        base_folder = "/etc/network_spotlight_agentd/"
-        for f in os.listdir(base_folder):
-            if ".bin" in f:
-                return base_folder+f
-        return ""
-
     def _enable_spotlight(self, tenant_id, user_id, instance_id, devices):
         LOG.info('_enable_spotlight %s %s %s', tenant_id, instance_id, str(devices))
         for d in devices:
-            cmd_line = "network_spotlight_worker -i %s -l %s " % (d, self._get_licence())
-            cmd_line = cmd_line + "--tenant-id '%s' --user-id '%s' --instance-id '%s'" % (tenant_id, user_id, instance_id)
-            self.children[d] = subprocess.Popen(cmd_line, shell=True)
+            pass
 
     def _disable_spotlight(self, tenant_id, user_id, instance_id, devices):
         LOG.info('_disable_spotlight %s %s %s', tenant_id, instance_id, str(devices))
         for d in devices:
-            if d in self.children:
-                process = self.children[d]
-                process.send_signal(signal.SIGTERM)
-                process.wait()
-                del self.children[d]
+            pass
 
 _agent = None
-
-def sigterm_handler(_signo, _stack_frame):
-    LOG.info("SIGTERM received")
-    if _agent:
-        for child in _agent.children.values():
-            LOG.info("Killing %s "% str(child))
-            child.send_signal(signal.SIGTERM) 
-            child.wait()
-    # Raises SystemExit(0):
-    sys.exit(0)
 
 
 def main():
     import nova_tools
     global _agent
-    signal.signal(signal.SIGTERM, sigterm_handler)
-    _agent = NetworkSpotlightAgent()
+    _agent = VProbeAgent()
     MQHooks.append(_agent)
 
     def delayed_func():
         LOG.debug("In delayed_func")
-        nova_tools.enable_spotlight_agents()
+        nova_tools.enable_vprobes()
         
     Timer(5, delayed_func).start()
     run_listener("nova", "compute.#")
@@ -166,5 +142,5 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
     elif args.logging == 'FATAL':
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.FATAL)
-    logging.info("NetworkSpotlightAgent starting...")
+    logging.info("VAgent starting...")
     main()
