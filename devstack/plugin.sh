@@ -4,6 +4,12 @@ function install_vprobe_dashboard {
     setup_develop ${VPROBE_DASH_DIR}
 }
 
+function install_vprobe_agentd {
+    pushd vprobe_agentd
+    sudo python setup.py install
+    popd
+}
+
 function configure_vprobe_dashboard {
     cp -a ${VPROBE_DASH_DIR}/vprobe_dashboard/enabled/* ${DEST}/horizon/openstack_dashboard/local/enabled/
     # NOTE: If locale directory does not exist, compilemessages will fail,
@@ -14,7 +20,7 @@ function configure_vprobe_dashboard {
 }
 
 # check for service enabled
-if is_service_enabled vprobe-dashboard; then
+if is_service_enabled vprobe_dashboard; then
 
     if [[ "$1" == "stack" && "$2" == "pre-install"  ]]; then
         # Set up system services
@@ -34,7 +40,7 @@ if is_service_enabled vprobe-dashboard; then
     elif [[ "$1" == "stack" && "$2" == "extra"  ]]; then
         # Initialize and start the app-catalog-ui service
         # no-op
-        :
+        run_process vprobe-agentd "vprobe_agentd"
     fi
 
     if [[ "$1" == "unstack"  ]]; then

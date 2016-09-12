@@ -18,7 +18,7 @@ setup(
     license = "Proprietary",
     keywords = "",
     url = "",
-    long_description=read('README'),
+    long_description="Agent which configures vpp to enable port mirroring",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Environment :: Plugins",
@@ -31,8 +31,7 @@ setup(
     provides = ['vprobe_agentd'],
     zip_safe = False,
     packages = find_packages(exclude=["ut_*"]),
-    install_requires=["requests", "pika", "pcapy", "impacket"],
-    package_data = {'vprobe_agentd': ['ixe/pyixe.so', 'ixe/protodef.proto']},
+    install_requires=["requests", "pika"],
     data_files = [('/etc/vprobe_agentd/', ['etc/vprobe.conf']), ],
     entry_points = {
         'console_scripts': [

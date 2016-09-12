@@ -14,7 +14,7 @@ from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 
 import vpp_papi
-import from portmirroring import *
+from portmirroring import *
 portmirroring = sys.modules['portmirroring']
 
 
