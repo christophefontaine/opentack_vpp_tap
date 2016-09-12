@@ -1,5 +1,0 @@
-Caution: This script requires you to copy "pyqmflow.so" and a licence file in this current folder.
-Modify the global value 'LICENCE_FILE' in 'network_spotlight_agent.py' to reflect the name of the licence file
-The "pyqmflow.so" should be builded from http://10.10.2.31/fontaine/python-qmflow
-
-Copy licence file in /etc/network_spotlight_agentd/
