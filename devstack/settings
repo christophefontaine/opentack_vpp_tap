@@ -1,1 +1,2 @@
 enable_service vprobe_dashboard
+enable_service vprobe-agentd
