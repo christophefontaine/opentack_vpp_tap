@@ -12,7 +12,7 @@ MQHooks = []
 
 
 class AMQPListener(Thread):
-    def __init__(self, rabbit_user, rabbit_password, rabbit_server, rabbit_server_port, exchange_name, routing_key):
+    def __init__(self, rabbit_user=None, rabbit_password=None, rabbit_server=None, rabbit_server_port=5672, exchange_name='', routing_key='', uri=None):
         Thread.__init__(self)
         self.daemon = True
         credentials = pika.PlainCredentials(rabbit_user, rabbit_password)
@@ -54,7 +54,7 @@ class AMQPListener(Thread):
                     if method_name in dir(class_instance):
                         getattr(class_instance, method_name)(msg['args'])
 
-#            print '***********************************  END  ****************************************'
+            # print '***********************************  END  ****************************************'
         except Exception:
             print '*********************************** ERROR ****************************************'
             exc_type, exc_value, exc_traceback = sys.exc_info()

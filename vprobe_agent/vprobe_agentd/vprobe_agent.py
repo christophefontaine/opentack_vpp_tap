@@ -13,41 +13,13 @@ from threading import Timer
 from rabbit_listener import run_listener, MQHooks
 LOG = logging.getLogger(__name__)
 
-import vpp_papi
-from portmirroring import *
-portmirroring = sys.modules['portmirroring']
+from vpp_tap import VPPTapClassifier
 
 
 class VProbeAgent(object):
     def __init__(self):
         self.children = {}
-        self.dest_sw_if_name = 'af_packet0'   # TODO: read from config ?
-        self.is_tap_initialized = False
-
-    def tap_init(self):
-        r = vpp_papi.connect('VProbeDashboard')
-        af_packet2_sw_if_index = vpp_papi.sw_interface_dump(1, self.dest_sw_if_name)[0].sw_if_index
-        portmirroring.pm_conf(af_packet2_sw_if_index, 0)
-
-        mask = 0
-        pm_in_hit_idx = vpp_papi.get_next_index('l2-input-classify', 'pm-in-hit').next_index
-        pm_out_hit_idx = vpp_papi.get_next_index('l2-output-classify', 'pm-out-hit').next_index
-
-        self.cl0 = vpp_papi.classify_add_del_table(1, 0xffffffff, 64, 1024*1024, 0, 1, 0xffffffff, pm_in_hit_idx, mask)
-        self.cl1 = vpp_papi.classify_add_del_table(1, 0xffffffff, 64, 1024*1024, 0, 1, 0xffffffff, pm_out_hit_idx, mask)
-        vpp_papi.disconnect()
-        self.is_tap_initialized = True
-
-    def tap_interface(self, sw_if_name, enable):
-        r = vpp_papi.connect('VProbeDashboard')
-        if self.is_tap_initialized is False:
-            self.tap_init()
-        is_input = 1
-        is_output = 0
-        sw_if_index = vpp_papi.sw_interface_dump(1, sw_if_name,)[0].sw_if_index
-        vpp_papi.classify_set_interface_l2_tables(sw_if_index, cl0.new_table_index, 0xffffffff, 0xffffffff, is_input)
-        vpp_papi.classify_set_interface_l2_tables(sw_if_index, cl1.new_table_index, 0xffffffff, 0xffffffff, is_output)
-        vpp_papi.disconnect()
+        self.tap = VPPTapClassifier()
 
     def _RPC_change_instance_metadata(self, args):
         instance_args = args['instance']['nova_object.data']
@@ -131,12 +103,12 @@ class VProbeAgent(object):
     def _enable_spotlight(self, tenant_id, user_id, instance_id, devices):
         LOG.info('_enable_spotlight %s %s %s', tenant_id, instance_id, str(devices))
         for d in devices:
-            pass
+            self.tap.tap_interface(str(d))
 
     def _disable_spotlight(self, tenant_id, user_id, instance_id, devices):
         LOG.info('_disable_spotlight %s %s %s', tenant_id, instance_id, str(devices))
         for d in devices:
-            pass
+            self.tap.untap_interface(str(d))
 
 _agent = None
 
