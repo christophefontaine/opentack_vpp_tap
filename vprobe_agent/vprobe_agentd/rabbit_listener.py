@@ -73,12 +73,17 @@ def _get_rabbit_config():
     import ConfigParser
     config = ConfigParser.ConfigParser()
     config.read('/etc/nova/nova.conf')
-    host = config.get("oslo_messaging_rabbit", "rabbit_host")
-    port = int(config.get("oslo_messaging_rabbit", "rabbit_port"))
-    user = config.get("oslo_messaging_rabbit", "rabbit_userid")
-    password = config.get("oslo_messaging_rabbit", "rabbit_password")
-    return (user, password, host, port)
-
+    try:
+        import re
+        url = config.get("DEFAULT", "transport_url")
+        exp = '[a-zA-Z]*://(.*):(.*)@(.*):([0-9]*)/'
+        return re.search(exp, url).groups()
+    except:
+        host = config.get("oslo_messaging_rabbit", "rabbit_host")
+        port = int(config.get("oslo_messaging_rabbit", "rabbit_port"))
+        user = config.get("oslo_messaging_rabbit", "rabbit_userid")
+        password = config.get("oslo_messaging_rabbit", "rabbit_password")
+        return (user, password, host, port)
 
 
 def run_listener(exchange_name, routing_key, rabbit_user=None, rabbit_password=None, rabbit_server=None, rabbit_server_port=5672):
@@ -88,7 +93,7 @@ def run_listener(exchange_name, routing_key, rabbit_user=None, rabbit_password=N
         rabbit_password = password
     if rabbit_server is None:
         rabbit_server = host
-        rabbit_server_port = port
+        rabbit_server_port = int(port)
 
     listener = AMQPListener(rabbit_user, rabbit_password,
                             rabbit_server, rabbit_server_port,
