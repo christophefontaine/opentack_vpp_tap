@@ -41,6 +41,6 @@ Here is an example of a local.conf:
   QEMU_USER=root
   QEMU_GROUP=root
   ENABLED_SERVICES+=,heat,h-api,h-api-cfn,h-api-cw,h-eng
-  enable_plugin vprobe http://gitlab.foret/fontaine/network_visibility.git
+  enable_plugin tap https://github.com/christophefontaine/opentack_vpp_tap
   # OFFLINE=True
   # RECLONE=False
